@@ -1,6 +1,6 @@
 from time import timezone
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError  # type: ignore
+from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
 from datetime import timedelta, datetime, timezone
 from models import User

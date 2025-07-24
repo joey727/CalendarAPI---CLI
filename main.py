@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import SQLModel, Session, select
 from auth import create_access_token, get_current_user
 from database import engine, get_sesssion
 from models import Event, User
+from schema import Token
 from utils import get_password_hash, verify_password
 
 app = FastAPI()
@@ -79,7 +81,7 @@ def delete_event(id: int, session: Session = Depends(get_sesssion)):
     return {"message": "event deleted successfully"}
 
 
-@app.post("/creat_user")
+@app.post("/create_user")
 def create_user(user: User, session: Session = Depends(get_sesssion)):
     user.password = get_password_hash(user.password)
     new_user = User(**user.model_dump())
@@ -87,11 +89,11 @@ def create_user(user: User, session: Session = Depends(get_sesssion)):
     session.commit()
     session.refresh(new_user)
 
-    return {"Message": "User account created!!", "user_info": new_user}
+    return {"Message": "User account created!!", "user_info": new_user.username}
 
 
 @app.post("/login")
-def user_login(user_credentials, session: Session = Depends(get_sesssion)):
+def user_login(user_credentials: User, session: Session = Depends(get_sesssion)):
     user = session.query(User).filter(
         User.username == user_credentials.username).first()
 
@@ -102,5 +104,5 @@ def user_login(user_credentials, session: Session = Depends(get_sesssion)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid user credentials")
 
-    access = create_access_token(data=user.id)
+    access = create_access_token(data={"id": user.id})
     return {"Access Token": access, "Token Type": "Bearer"}
