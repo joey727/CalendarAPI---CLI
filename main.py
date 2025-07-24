@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import SQLModel, Session, select
 from auth import create_access_token, get_current_user
@@ -6,6 +6,7 @@ from database import engine, get_sesssion
 from models import Event, User
 from schema import Token
 from utils import get_password_hash, verify_password
+from ics import Calendar, Event as ICSEvent
 
 app = FastAPI()
 
@@ -106,3 +107,16 @@ def user_login(user_credentials: User, session: Session = Depends(get_sesssion))
 
     access = create_access_token(data={"id": user.id})
     return {"Access Token": access, "Token Type": "Bearer"}
+
+
+@app.post("/export/ics")
+def export_ics(session: Session = Depends(get_sesssion)):
+    events = session.exec(select(Event)).all()
+    cal = Calendar()
+    for e in events:
+        ics_event = ICSEvent()
+        ics_event.name = e.title
+        ics_event.begin = e.date
+        ics_event.description = e.description
+        cal.events.add(ics_event)
+    return Response(str(cal), media_type="text/calendar")
